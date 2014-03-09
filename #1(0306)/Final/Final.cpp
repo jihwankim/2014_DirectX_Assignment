@@ -135,7 +135,7 @@ HRESULT InitGeometry()
     LPD3DXBUFFER pD3DXMtrlBuffer[2];
 
 	// Load the mesh from the specified file
-	if (FAILED(D3DXLoadMeshFromX(L"Resource/Tiger0.x", D3DXMESH_SYSTEMMEM,
+	if (FAILED(D3DXLoadMeshFromX(L"Tiger0.x", D3DXMESH_SYSTEMMEM,
 		g_pd3dDevice, NULL,
 		&pD3DXMtrlBuffer[0], NULL, &g_dwNumMaterials[0],
 		&g_pMesh[0])))
@@ -145,7 +145,7 @@ HRESULT InitGeometry()
 	}
 
 	// Load the mesh from the specified file
-	if (FAILED(D3DXLoadMeshFromX(L"Resource/Tiger1.x", D3DXMESH_SYSTEMMEM,
+	if (FAILED(D3DXLoadMeshFromX(L"Tiger1.x", D3DXMESH_SYSTEMMEM,
 		g_pd3dDevice, NULL,
 		&pD3DXMtrlBuffer[1], NULL, &g_dwNumMaterials[1],
 		&g_pMesh[1])))

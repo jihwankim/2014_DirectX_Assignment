@@ -45,6 +45,7 @@ LPDIRECT3DTEXTURE9      g_pTexture[2] = { NULL, NULL }; // Our texture
 struct CUSTOMVERTEX
 {
     D3DXVECTOR3 position; // The position
+	D3DXVECTOR3 normal;   // The surface normal for the vertex
     D3DCOLOR color;    // The color
 #ifndef SHOW_HOW_TO_USE_TCI
     FLOAT tu, tv;   // The texture coordinates
@@ -53,9 +54,9 @@ struct CUSTOMVERTEX
 
 // Our custom FVF, which describes our custom vertex structure
 #ifdef SHOW_HOW_TO_USE_TCI
-#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_DIFFUSE)
+#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_NORMAL)
 #else
-#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_TEX1)
+#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_TEX1|D3DFVF_NORMAL)
 #endif
 
 
@@ -92,7 +93,7 @@ HRESULT InitD3D( HWND hWnd )
     g_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE );
 
     // Turn off D3D lighting
-    g_pd3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
+    g_pd3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
 
     // Turn on the zbuffer
     g_pd3dDevice->SetRenderState( D3DRS_ZENABLE, TRUE );
@@ -139,6 +140,7 @@ HRESULT InitGeometry()
         FLOAT theta = ( 2 * D3DX_PI * i ) / ( 50 - 1 );
 
         pVertices[2 * i + 0].position = D3DXVECTOR3( sinf( theta ), -1.0f, cosf( theta ) );
+		pVertices[2 * i + 0].normal = D3DXVECTOR3(sinf(theta), 0.0f, cosf(theta));
         pVertices[2 * i + 0].color = 0xffffffff;
 #ifndef SHOW_HOW_TO_USE_TCI
         pVertices[2 * i + 0].tu = ( ( FLOAT )i ) / ( 50 - 1 );
@@ -146,6 +148,7 @@ HRESULT InitGeometry()
 #endif
 
         pVertices[2 * i + 1].position = D3DXVECTOR3( sinf( theta ), 1.0f, cosf( theta ) );
+		pVertices[2 * i + 1].normal = D3DXVECTOR3(sinf(theta), 0.0f, cosf(theta));
         pVertices[2 * i + 1].color = 0xff808080;
 #ifndef SHOW_HOW_TO_USE_TCI
         pVertices[2 * i + 1].tu = ( ( FLOAT )i ) / ( 50 - 1 );
@@ -159,7 +162,70 @@ HRESULT InitGeometry()
 
 
 
+VOID SetupLights(int lightNum)
+{
+	// Set up a material. The material here just has the diffuse and ambient
+	// colors set to yellow. Note that only one material can be used at a time.
+	D3DMATERIAL9 mtrl;
+	ZeroMemory(&mtrl, sizeof(D3DMATERIAL9));
+	mtrl.Diffuse.r = mtrl.Ambient.r = 1.0f;
+	mtrl.Diffuse.g = mtrl.Ambient.g = 1.0f;
+	mtrl.Diffuse.b = mtrl.Ambient.b = 1.0f;
+	mtrl.Diffuse.a = mtrl.Ambient.a = 1.0f;
+	g_pd3dDevice->SetMaterial(&mtrl);
 
+	// Set up a white, directional light, with an oscillating direction.
+	// Note that many Lights may be active at a time (but each one slows down
+	// the rendering of our scene). However, here we are just using one. Also,
+	// we need to set the D3DRS_LIGHTING renderstate to enable lighting
+	D3DXVECTOR3 vecDir;
+	D3DLIGHT9 light0, light1;
+	ZeroMemory(&light0, sizeof(D3DLIGHT9));
+	ZeroMemory(&light1, sizeof(D3DLIGHT9));
+
+	if (lightNum == 0)
+	{
+		light0.Type = D3DLIGHT_DIRECTIONAL;
+		light0.Diffuse.r = 1.0f;
+		light0.Diffuse.g = 1.0f;
+		light0.Diffuse.b = 1.0f;
+		// 	vecDir = D3DXVECTOR3(cosf(timeGetTime() / 350.0f),
+		// 		1.0f,
+		// 		sinf(timeGetTime() / 350.0f));
+		vecDir = D3DXVECTOR3(10.f, 1.0f, 0);
+		D3DXVec3Normalize((D3DXVECTOR3*)&light0.Direction, &vecDir);
+		light0.Range = 1000.f;
+		g_pd3dDevice->SetLight(0, &light0);
+		g_pd3dDevice->LightEnable(0, TRUE);
+		g_pd3dDevice->LightEnable(1, FALSE);
+		//g_pd3dDevice->SetRenderState(D3DRS_LIGHTING, TRUE);
+
+		// Finally, turn on some ambient light.
+		//g_pd3dDevice->SetRenderState(D3DRS_AMBIENT, 0x00202020);
+	}
+	else if (lightNum == 1)
+	{
+		light1.Type = D3DLIGHT_DIRECTIONAL;
+		light1.Diffuse.r = 1.0f;
+		light1.Diffuse.g = 1.0f;
+		light1.Diffuse.b = 1.0f;
+		//     vecDir = D3DXVECTOR3( sinf( timeGetTime() / 350.0f ),
+		//                           1.0f,
+		//                           cosf( timeGetTime() / 350.0f ) );
+		vecDir = D3DXVECTOR3(-10.f, 1.f, 0.f);
+		D3DXVec3Normalize((D3DXVECTOR3*)&light1.Direction, &vecDir);
+		light1.Range = 1000.0f;
+		g_pd3dDevice->SetLight(1, &light1);
+		g_pd3dDevice->LightEnable(0, FALSE);
+		g_pd3dDevice->LightEnable(1, TRUE);
+		//
+	}
+	g_pd3dDevice->SetRenderState(D3DRS_LIGHTING, TRUE);
+
+	// Finally, turn on some ambient light.
+	//g_pd3dDevice->SetRenderState(D3DRS_AMBIENT, 0x00202020);
+	g_pd3dDevice->SetRenderState(D3DRS_AMBIENT, 0x01234567);
+}
 //-----------------------------------------------------------------------------
 // Name: Cleanup()
 // Desc: Releases all previously initialized objects
@@ -234,8 +300,12 @@ VOID Render()
     // Begin the scene
     if( SUCCEEDED( g_pd3dDevice->BeginScene() ) )
     {
+		SetupLights((timeGetTime() / 1000) % 2);
+
         // Setup the world, view, and projection matrices
         SetupMatrices();
+
+		
 
         // Setup our texture. Using Textures introduces the texture stage states,
         // which govern how Textures get blended together (in the case of multiple
@@ -244,6 +314,7 @@ VOID Render()
 
 		int TextureIndex = (timeGetTime()/1000)%2;
 
+		//g_pd3dDevice->SetRenderState(D3DRS_AMBIENT, 0x00202020);
 		g_pd3dDevice->SetTexture(0, g_pTexture[TextureIndex]);
 		g_pd3dDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
 		g_pd3dDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
@@ -287,10 +358,14 @@ VOID Render()
 	g_pd3dDevice->SetTextureStageState( 0, D3DTSS_TEXCOORDINDEX, D3DTSS_TCI_CAMERASPACEPOSITION );
 	#endif
 
+	
+
         // Render the vertex buffer contents
-	g_pd3dDevice->SetStreamSource(0, g_pVB, 0, sizeof(CUSTOMVERTEX));
+		g_pd3dDevice->SetStreamSource(0, g_pVB, 0, sizeof(CUSTOMVERTEX));
         g_pd3dDevice->SetFVF( D3DFVF_CUSTOMVERTEX );
         g_pd3dDevice->DrawPrimitive( D3DPT_TRIANGLESTRIP, 0, 2 * 50 - 2 );
+		
+		
 
         // End the scene
         g_pd3dDevice->EndScene();
